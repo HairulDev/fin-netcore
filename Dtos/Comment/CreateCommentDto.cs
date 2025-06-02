@@ -16,5 +16,9 @@ namespace api.Dtos.Comment
         [MinLength(4, ErrorMessage = "Content must be 4 characters")]
         [MaxLength(280, ErrorMessage = "Content cannot be over 280 characters")]
         public string Content { get; set; } = string.Empty;
+        [Required]
+        [MinLength(4, ErrorMessage = "Content must be 4 characters")]
+        [MaxLength(999, ErrorMessage = "Content cannot be over 999 characters")]
+        public string FilePath { get; set; } = string.Empty;
     }
 }

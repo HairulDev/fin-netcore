@@ -17,6 +17,9 @@ namespace api.Mappers
                 Title = commentModel.Title,
                 Content = commentModel.Content,
                 CreatedOn = commentModel.CreatedOn,
+                FilePaths = string.IsNullOrEmpty(commentModel.FilePath) 
+                    ? new List<string>() 
+                    : commentModel.FilePath.Split(",").ToList(),
                 CreatedBy = commentModel.AppUser?.UserName,
                 StockId = commentModel.StockId
             };
@@ -28,6 +31,7 @@ namespace api.Mappers
             {
                 Title = commentDto.Title,
                 Content = commentDto.Content,
+                FilePath = commentDto.FilePath,
                 StockId = stockId
             };
         }
@@ -38,6 +42,7 @@ namespace api.Mappers
             {
                 Title = commentDto.Title,
                 Content = commentDto.Content,
+                FilePath = commentDto.FilePath,
                 StockId = stockId
             };
         }
