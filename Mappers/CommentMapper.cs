@@ -38,6 +38,7 @@ namespace api.Mappers
 
         public static Comment ToCommentFromUpdate(this UpdateCommentRequestDto commentDto, int stockId)
         {
+            Console.WriteLine($"commentDto.FilePath received: {System.Text.Json.JsonSerializer.Serialize(commentDto.FilePath)}");
             return new Comment
             {
                 Title = commentDto.Title,

@@ -90,6 +90,8 @@ namespace api.Controllers
         [Route("{id:int}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateCommentRequestDto updateDto)
         {
+            Console.WriteLine($"UpdateDto received: {System.Text.Json.JsonSerializer.Serialize(updateDto)}");
+
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 

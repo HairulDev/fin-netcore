@@ -70,6 +70,7 @@ namespace api.Repository
 
             existingComment.Title = commentModel.Title;
             existingComment.Content = commentModel.Content;
+            existingComment.FilePath = commentModel.FilePath;
 
             await _context.SaveChangesAsync();
 
