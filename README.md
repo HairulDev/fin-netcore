@@ -23,9 +23,30 @@ Ensure the following tools are installed:
 
 ---
 
+
 ## Installation & Run
 
 - **Change ConnectionStrings in appsettings.json**
+
+```bash
+
+# Genereate random key for SigningKey value in appsettings.json
+openssl rand -base64 64
+
+```
+
+- Create a `.env` file in the project root directory and add the necessary environment variables:
+
+```env
+
+DB_HOST=
+DB_DATABASE=
+DB_USERNAME=
+DB_PASSWORD=
+FMPKey=your_api_key (go to https://financialmodelingprep.com)
+
+```
+
 
 ```bash
 
