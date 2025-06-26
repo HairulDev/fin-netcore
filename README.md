@@ -1,26 +1,40 @@
-# Documentation for Using This Project
+# Project Documentation
 
-This is the **backend implementation** using **.NET Core 8**
+This repository contains documentation and references for both the **backend** (.NET Core 8) and **backend** (Rust Axum for upload/download file) and **frontend** (Vue.js or React.js)
+
+---
 
 ## Related Projects
 
-This backend is designed to work with multiple frontend and backend implementations:
+- **.NET Core 8 (Backend)**: [fin-netcore](https://github.com/HairulDev/fin-netcore)
+- **Vue.js (Frontend)**: [fin-vuejs](https://github.com/HairulDev/fin-vuejs)
+- **Rust (Axum) Version**: [fin-rustaxum](https://github.com/HairulDev/fin-rustaxum)
+- **React (TypeScript) Version**: [fin-reactts](https://github.com/HairulDev/fin-reactts)
 
-- **Rust (Axum) version**: [fin-rustaxum](https://github.com/HairulDev/fin-rustaxum)
-- **Vue.js version**: [fin-vuejs](https://github.com/HairulDev/fin-vuejs)
-- **React (TypeScript) version**: [fin-reactts](https://github.com/HairulDev/fin-reactts)
+---
 
-### Prerequisites
+## Prerequisites
+
+Ensure the following tools are installed:
 
 - [.NET SDK 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-- PostgreSQL
+- [PostgreSQL](https://www.postgresql.org/download/)
 - [Visual Studio 2022+](https://visualstudio.microsoft.com/) or [VS Code](https://code.visualstudio.com/)
 
 ---
 
-### Installation & Run
+## Installation & Run
+
+- **Change ConnectionStrings in appsettings.json**
 
 ```bash
+
+# Instal EF CLI
+dotnet tool install --global dotnet-ef
+
+# Applying migrations
+dotnet ef database update
+
 # Restore dependencies
 dotnet restore
 
