@@ -1,6 +1,6 @@
 # Project Documentation
 
-This repository contains documentation and references for both the **backend** (.NET Core 8) and **backend** (Rust Axum for upload/download file) and **frontend** (Vue.js or React.js)
+This repository contains documentation and references for both the **backend** (.NET Core 8) and **backend** (Rust Axum for upload/download file) and **frontend** (Vue.js or React.js or Angular.js)
 
 ---
 
@@ -10,6 +10,7 @@ This repository contains documentation and references for both the **backend** (
 - **Vue.js (Frontend)**: [fin-vuejs](https://github.com/HairulDev/fin-vuejs)
 - **Rust (Axum) Version**: [fin-rustaxum](https://github.com/HairulDev/fin-rustaxum)
 - **React (TypeScript) Version**: [fin-reactts](https://github.com/HairulDev/fin-reactts)
+- **Angular (TypeScript) Version**: [fin-angular](https://github.com/HairulDev/fin-angular)
 
 ---
 
