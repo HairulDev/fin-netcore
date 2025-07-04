@@ -4,6 +4,12 @@ This repository contains documentation and references for both the **backend** (
 
 ---
 
+## Demo
+
+Watch the demo on YouTube: [https://youtu.be/F95vnIzb4mU?feature=shared](https://youtu.be/F95vnIzb4mU?feature=shared
+
+---
+
 ## Related Projects
 
 - **.NET Core 8 (Backend)**: [fin-netcore](https://github.com/HairulDev/fin-netcore)
