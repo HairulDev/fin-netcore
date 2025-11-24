@@ -39,18 +39,18 @@ namespace api.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetUserPortfolio()
+        public async IAsyncEnumerable<Stock> GetUserPortfolio()
         {
             var username = User.GetUsername();
             var appUser = await _userManager.FindByNameAsync(username);
 
-            if (appUser == null)
+            if (appUser != null)
             {
-                return NotFound("User not found.");
+                await foreach (var stock in _portfolioRepo.GetUserPortfolio(appUser))
+                {
+                    yield return stock;
+                }
             }
-
-            var userPortfolio = await _portfolioRepo.GetUserPortfolio(appUser);
-            return Ok(userPortfolio);
         }
 
         [HttpPost]
@@ -68,7 +68,11 @@ namespace api.Controllers
             var stock = await _stockService.EnsureStockExistsAsync(symbol);
             if (stock == null) return BadRequest("Stock does not exist"); ;
 
-            var userPortfolio = await _portfolioRepo.GetUserPortfolio(appUser);
+            var userPortfolio = new List<Stock>();
+            await foreach(var portfolioStock in _portfolioRepo.GetUserPortfolio(appUser))
+            {
+                userPortfolio.Add(portfolioStock);
+            }
 
             if (userPortfolio.Any(e => e.Symbol.ToLower() == symbol.ToLower())) return BadRequest("Cannot add same stock to portfolio");
 
@@ -106,7 +110,11 @@ namespace api.Controllers
                 return NotFound("User not found.");
             }
 
-            var userPortfolio = await _portfolioRepo.GetUserPortfolio(appUser);
+            var userPortfolio = new List<Stock>();
+            await foreach(var portfolioStock in _portfolioRepo.GetUserPortfolio(appUser))
+            {
+                userPortfolio.Add(portfolioStock);
+            }
 
             var filteredStock = userPortfolio.Where(s => s.Symbol.ToLower() == symbol.ToLower()).ToList();
 

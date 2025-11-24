@@ -73,3 +73,4 @@ dotnet build
 
 # Run the application
 dotnet run
+dotnet watch run

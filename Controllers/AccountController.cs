@@ -28,12 +28,12 @@ namespace api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
-            Console.WriteLine($"Username ========>>>> {loginDto.Username}, Password ========>>>> {loginDto.Password}");
+            Console.WriteLine($"login Username ========>>>> {loginDto.Username}, Password ========>>>> {loginDto.Password}");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username);
 
             if (user == null) return Unauthorized("Invalid username!");
 
@@ -54,6 +54,9 @@ namespace api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
+                        Console.WriteLine($"register Username ========>>>> {registerDto.Username}, Password ========>>>> {registerDto.Password}");
+
+
             try
             {
                 if (!ModelState.IsValid)
