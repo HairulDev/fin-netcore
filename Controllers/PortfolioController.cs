@@ -43,6 +43,12 @@ namespace api.Controllers
         {
             var username = User.GetUsername();
             var appUser = await _userManager.FindByNameAsync(username);
+
+            if (appUser == null)
+            {
+                return NotFound("User not found.");
+            }
+
             var userPortfolio = await _portfolioRepo.GetUserPortfolio(appUser);
             return Ok(userPortfolio);
         }
@@ -53,6 +59,11 @@ namespace api.Controllers
         {
             var username = User.GetUsername();
             var appUser = await _userManager.FindByNameAsync(username);
+
+            if (appUser == null)
+            {
+                return NotFound("User not found.");
+            }
 
             var stock = await _stockService.EnsureStockExistsAsync(symbol);
             if (stock == null) return BadRequest("Stock does not exist"); ;
@@ -89,6 +100,11 @@ namespace api.Controllers
         {
             var username = User.GetUsername();
             var appUser = await _userManager.FindByNameAsync(username);
+
+            if (appUser == null)
+            {
+                return NotFound("User not found.");
+            }
 
             var userPortfolio = await _portfolioRepo.GetUserPortfolio(appUser);
 

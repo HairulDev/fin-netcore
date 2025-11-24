@@ -20,7 +20,7 @@ namespace api.Mappers
                 FilePaths = string.IsNullOrEmpty(commentModel.FilePath) 
                     ? new List<string>() 
                     : commentModel.FilePath.Split(",").ToList(),
-                CreatedBy = commentModel.AppUser?.UserName,
+                CreatedBy = commentModel.AppUser?.UserName ?? string.Empty,
                 StockId = commentModel.StockId
             };
         }

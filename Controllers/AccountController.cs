@@ -33,7 +33,7 @@ namespace api.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username);
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
 
             if (user == null) return Unauthorized("Invalid username!");
 
@@ -44,8 +44,8 @@ namespace api.Controllers
             return Ok(
                 new NewUserDto
                 {
-                    UserName = user.UserName,
-                    Email = user.Email,
+                    UserName = user.UserName ?? string.Empty,
+                    Email = user.Email ?? string.Empty,
                     Token = _tokenService.CreateToken(user)
                 }
             );
@@ -61,11 +61,11 @@ namespace api.Controllers
 
                 var appUser = new AppUser
                 {
-                    UserName = registerDto.Username,
-                    Email = registerDto.Email
+                    UserName = registerDto.Username!,
+                    Email = registerDto.Email!
                 };
 
-                var createdUser = await _userManager.CreateAsync(appUser, registerDto.Password);
+                var createdUser = await _userManager.CreateAsync(appUser, registerDto.Password!);
 
                 if (createdUser.Succeeded)
                 {
@@ -75,8 +75,8 @@ namespace api.Controllers
                         return Ok(
                             new NewUserDto
                             {
-                                UserName = appUser.UserName,
-                                Email = appUser.Email,
+                                UserName = appUser.UserName ?? string.Empty,
+                                Email = appUser.Email ?? string.Empty,
                                 Token = _tokenService.CreateToken(appUser)
                             }
                         );

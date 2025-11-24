@@ -41,11 +41,11 @@ namespace api.Repository
 
         public async Task<List<Comment>> GetAllAsync(CommentQueryObject queryObject)
         {
-            var comments = _context.Comments.Include(a => a.AppUser).AsQueryable();
+            var comments = _context.Comments.Include(a => a.AppUser).AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(queryObject.Symbol))
             {
-                comments = comments.Where(s => s.Stock.Symbol == queryObject.Symbol);
+                comments = comments.Where(s => s.Stock != null && s.Stock.Symbol == queryObject.Symbol);
             };
             if (queryObject.IsDecsending == true)
             {
@@ -56,7 +56,7 @@ namespace api.Repository
 
         public async Task<Comment?> GetByIdAsync(int id)
         {
-            return await _context.Comments.Include(a => a.AppUser).FirstOrDefaultAsync(c => c.Id == id);
+            return await _context.Comments.Include(a => a.AppUser).AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
         }
 
         public async Task<Comment?> UpdateAsync(int id, Comment commentModel)
