@@ -25,16 +25,11 @@ namespace api.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetAll([FromQuery] QueryObject query)
+        public IAsyncEnumerable<StockDto> GetAll([FromQuery] QueryObject query)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var stocks = await _stockRepo.GetAllAsync(query);
-
-            var stockDto = stocks.Select(s => s.ToStockDto()).ToList();
-
-            return Ok(stockDto);
+            var stocks = _stockRepo.GetAllAsync(query);
+            var stockDto = stocks.Select(s => s.ToStockDto());
+            return stockDto;
         }
 
         [HttpGet("{id:int}")]

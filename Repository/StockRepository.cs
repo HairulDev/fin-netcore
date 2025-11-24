@@ -8,22 +8,16 @@ using api.Helpers;
 using api.Interfaces;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-
-//    1. Caching: Metode GetAllAsync dan GetByIdAsync menggunakan cache dalam memori untuk
-//       mengurangi panggilan ke database.
-//    2. Invalidasi Cache: Cache akan otomatis dihapus saat ada operasi
-//        Create, Update, atau Delete untuk menjaga konsistensi data.
-//    3. Optimasi EF Core: Query yang bersifat hanya-baca (read-only) menggunakan .AsNoTracking() untuk mengurangi
-//       overhead.
+using Microsoft.Extensions.Caching.Distributed;
+using Newtonsoft.Json;
 
 namespace api.Repository
 {
     public class StockRepository : IStockRepository
     {
         private readonly ApplicationDBContext _context;
-        private readonly IMemoryCache _cache;
-        public StockRepository(ApplicationDBContext context, IMemoryCache cache)
+        private readonly IDistributedCache _cache;
+        public StockRepository(ApplicationDBContext context, IDistributedCache cache)
         {
             _context = context;
             _cache = cache;
@@ -33,7 +27,6 @@ namespace api.Repository
         {
             await _context.Stocks.AddAsync(stockModel);
             await _context.SaveChangesAsync();
-            _cache.Remove("stocks");
             return stockModel;
         }
 
@@ -48,56 +41,69 @@ namespace api.Repository
 
             _context.Stocks.Remove(stockModel);
             await _context.SaveChangesAsync();
-            _cache.Remove("stocks");
+            await _cache.RemoveAsync($"stock-{id}");
             return stockModel;
         }
 
-        public async Task<List<Stock>> GetAllAsync(QueryObject query)
+        public IAsyncEnumerable<Stock> GetAllAsync(QueryObject query)
         {
-            var cacheKey = "stocks";
-            if (!_cache.TryGetValue(cacheKey, out List<Stock>? stocks))
-            {
-                stocks = await _context.Stocks.Include(c => c.Comments).ThenInclude(a => a.AppUser).ToListAsync();
-                _cache.Set(cacheKey, stocks, TimeSpan.FromMinutes(15));
-            }
+            var stocks = _context.Stocks
+                .Include(c => c.Comments)
+                .ThenInclude(a => a.AppUser)
+                .AsNoTracking();
 
-            var stocksQueryable = (stocks ?? new List<Stock>()).AsQueryable();
-
+            // Apply filtering
             if (!string.IsNullOrWhiteSpace(query.CompanyName))
             {
-                stocksQueryable = stocksQueryable.Where(s => s.CompanyName.Contains(query.CompanyName));
+                stocks = stocks.Where(s => s.CompanyName.Contains(query.CompanyName));
             }
 
             if (!string.IsNullOrWhiteSpace(query.Symbol))
             {
-                stocksQueryable = stocksQueryable.Where(s => s.Symbol.Contains(query.Symbol));
+                stocks = stocks.Where(s => s.Symbol.Contains(query.Symbol));
             }
 
+            // Apply sorting
             if (!string.IsNullOrWhiteSpace(query.SortBy))
             {
                 if (query.SortBy.Equals("Symbol", StringComparison.OrdinalIgnoreCase))
                 {
-                    stocksQueryable = query.IsDecsending ? stocksQueryable.OrderByDescending(s => s.Symbol) : stocksQueryable.OrderBy(s => s.Symbol);
+                    stocks = query.IsDecsending
+                        ? stocks.OrderByDescending(s => s.Symbol)
+                        : stocks.OrderBy(s => s.Symbol);
                 }
             }
 
+            // Apply pagination
             var skipNumber = (query.PageNumber - 1) * query.PageSize;
+            var pagedStocks = stocks.Skip(skipNumber).Take(query.PageSize);
 
-
-            return stocksQueryable.Skip(skipNumber).Take(query.PageSize).ToList();
+            return pagedStocks.AsAsyncEnumerable();
         }
 
         public async Task<Stock?> GetByIdAsync(int id)
         {
             var cacheKey = $"stock-{id}";
-            if (!_cache.TryGetValue(cacheKey, out Stock? stock))
+            string? cachedStock = await _cache.GetStringAsync(cacheKey);
+            Stock? stock;
+
+            if (string.IsNullOrEmpty(cachedStock))
             {
                 stock = await _context.Stocks.Include(c => c.Comments).ThenInclude(a => a.AppUser).FirstOrDefaultAsync(i => i.Id == id);
                 if (stock != null)
                 {
-                    _cache.Set(cacheKey, stock, TimeSpan.FromMinutes(15));
+                    var options = new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+                    };
+                    await _cache.SetStringAsync(cacheKey, JsonConvert.SerializeObject(stock, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }), options);
                 }
             }
+            else
+            {
+                stock = JsonConvert.DeserializeObject<Stock>(cachedStock);
+            }
+
             return stock;
         }
 
@@ -128,8 +134,7 @@ namespace api.Repository
             existingStock.MarketCap = stockDto.MarketCap;
 
             await _context.SaveChangesAsync();
-            _cache.Remove("stocks");
-            _cache.Remove($"stock-{id}");
+            await _cache.RemoveAsync($"stock-{id}");
 
             return existingStock;
         }

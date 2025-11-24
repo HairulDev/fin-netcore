@@ -16,18 +16,28 @@ using Polly.Extensions.Http;
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 
-// 1.  Response Compression: Ini akan mengompresi respons HTTP
+
+// 1.  Response Compression (ResponseCompression): Ini akan mengompresi respons HTTP
 //     yang dikirim ke klien, sehingga mengurangi ukuran payload dan mempercepat waktu download.
-// 2.  Menambahkan kebijakan resilience pada HttpClient menggunakan Polly, 
-//     termasuk mekanisme Retry dan Circuit Breaker, untuk meningkatkan ketahanan aplikasi saat berkomunikasi dengan API eksternal. 
-//     Kebijakan ini membantu aplikasi menangani kegagalan sementara (transient failures), 
-//     mencegah permintaan berulang yang tidak perlu, serta menjaga stabilitas sistem ketika layanan eksternal mengalami gangguan.
+// 2.  HttpClient Resilience (Polly) : Termasuk mekanisme Retry dan Circuit Breaker
+//     untuk menjaga stabilitas sistem ketika layanan eksternal mengalami gangguan.
+// 3.  Asynchronous Streaming (IAsyncEnumerable): Mengubah endpoint utama untuk me-stream data, yang secara drastis mengurangi penggunaan memori server.
+// 4.  Caching (Distributed Caching with Redis): Menggunakan Redis sebagai penyimpanan cache terdistribusi
+//     untuk mengurangi beban pada database dan mempercepat waktu respons aplikasi.
+// 5.  Optimasi query (.AsNoTracking()) : digunakan pada query EF Core bersifat hanya-baca.
+//     Untuk meningkatkan kinerja dengan mengurangi overhead pelacakan perubahan entitas.
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 builder.Services.AddMemoryCache();
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "FinNetCore_";
+});
 
 builder.Services.AddResponseCompression(options =>
 {

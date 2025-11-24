@@ -38,16 +38,11 @@ namespace api.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetAll([FromQuery] CommentQueryObject queryObject)
+        public IAsyncEnumerable<CommentDto> GetAll([FromQuery] CommentQueryObject queryObject)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var comments = await _commentRepo.GetAllAsync(queryObject);
-
+            var comments = _commentRepo.GetAllAsync(queryObject);
             var commentDto = comments.Select(s => s.ToCommentDto());
-
-            return Ok(commentDto);
+            return commentDto;
         }
 
         [HttpGet("{id:int}")]

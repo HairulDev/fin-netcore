@@ -7,15 +7,19 @@ using api.Helpers;
 using api.Interfaces;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Newtonsoft.Json;
 
 namespace api.Repository
 {
     public class CommentRepository : ICommentRepository
     {
         private readonly ApplicationDBContext _context;
-        public CommentRepository(ApplicationDBContext context)
+        private readonly IDistributedCache _cache;
+        public CommentRepository(ApplicationDBContext context, IDistributedCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<Comment> CreateAsync(Comment commentModel)
@@ -36,10 +40,11 @@ namespace api.Repository
 
             _context.Comments.Remove(commentModel);
             await _context.SaveChangesAsync();
+            await _cache.RemoveAsync($"comment-{id}");
             return commentModel;
         }
 
-        public async Task<List<Comment>> GetAllAsync(CommentQueryObject queryObject)
+        public async IAsyncEnumerable<Comment> GetAllAsync(CommentQueryObject queryObject)
         {
             var comments = _context.Comments.Include(a => a.AppUser).AsNoTracking();
 
@@ -51,12 +56,37 @@ namespace api.Repository
             {
                 comments = comments.OrderByDescending(c => c.CreatedOn);
             }
-            return await comments.ToListAsync();
+            
+            await foreach (var comment in comments.AsAsyncEnumerable())
+            {
+                yield return comment;
+            }
         }
 
         public async Task<Comment?> GetByIdAsync(int id)
         {
-            return await _context.Comments.Include(a => a.AppUser).AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+            var cacheKey = $"comment-{id}";
+            string? cachedComment = await _cache.GetStringAsync(cacheKey);
+            Comment? comment;
+
+            if (string.IsNullOrEmpty(cachedComment))
+            {
+                comment = await _context.Comments.Include(a => a.AppUser).AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+                if (comment != null)
+                {
+                    var options = new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+                    };
+                    await _cache.SetStringAsync(cacheKey, JsonConvert.SerializeObject(comment, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore }), options);
+                }
+            }
+            else
+            {
+                comment = JsonConvert.DeserializeObject<Comment>(cachedComment);
+            }
+
+            return comment;
         }
 
         public async Task<Comment?> UpdateAsync(int id, Comment commentModel)
@@ -73,7 +103,7 @@ namespace api.Repository
             existingComment.FilePath = commentModel.FilePath;
 
             await _context.SaveChangesAsync();
-
+            await _cache.RemoveAsync($"comment-{id}");
             return existingComment;
         }
     }
