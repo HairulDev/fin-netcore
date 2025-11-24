@@ -5,6 +5,7 @@ using api.Repository;
 using api.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -12,6 +13,7 @@ using Microsoft.OpenApi.Models;
 using PortfolioSignalRApp.Hubs;
 using Polly;
 using Polly.Extensions.Http;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
@@ -26,8 +28,14 @@ DotNetEnv.Env.Load();
 //     untuk mengurangi beban pada database dan mempercepat waktu respons aplikasi.
 // 5.  Optimasi query (.AsNoTracking()) : digunakan pada query EF Core bersifat hanya-baca.
 //     Untuk meningkatkan kinerja dengan mengurangi overhead pelacakan perubahan entitas.
+// 6.  Rate Limiting (Microsoft.AspNetCore.RateLimiting): Membatasi jumlah permintaan yang dapat dilakukan
+//     oleh klien dalam jangka waktu tertentu untuk mencegah penyalahgunaan dan melindungi sumber daya server.
 
-builder.Services.AddControllers();
+
+builder.Services.AddControllers().AddNewtonsoftJson(options =>
+{
+    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
@@ -73,22 +81,28 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
-builder.Services.AddControllers().AddNewtonsoftJson(options =>
+builder.Services.AddRateLimiter(options =>
 {
-    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("fixed", opt =>
+    {
+        opt.PermitLimit = 100;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 5;
+    });
 });
 
-string dbConnectionString = $"Host={Environment.GetEnvironmentVariable("DB_HOST")};" +
-                            $"Database={Environment.GetEnvironmentVariable("DB_DATABASE")};" +
-                            $"Username={Environment.GetEnvironmentVariable("DB_USERNAME")};" +
-                            $"Password={Environment.GetEnvironmentVariable("DB_PASSWORD")}";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!
+    .Replace("{DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST"))
+    .Replace("{DB_DATABASE}", Environment.GetEnvironmentVariable("DB_DATABASE"))
+    .Replace("{DB_USERNAME}", Environment.GetEnvironmentVariable("DB_USERNAME"))
+    .Replace("{DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD"));
+
 
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {
-    // options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-    // options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
-    options.UseNpgsql(dbConnectionString);
-
+    options.UseNpgsql(connectionString);
 });
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
@@ -149,21 +163,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseRateLimiter();
+
 app.UseResponseCompression();
 
-app.UseCors(x => x
-    .AllowAnyHeader()
-    .AllowAnyMethod()
-    .AllowCredentials()
-    .SetIsOriginAllowed(origin => true)
-);
+app.UseCors(builder =>
+{
+    builder
+        .WithOrigins("http://localhost:3000", "http://localhost:5173")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
+});
 
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapControllers().RequireRateLimiting("fixed");
 
 app.Run();
+
 
